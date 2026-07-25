@@ -7,8 +7,8 @@ import requests
 TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1530548841324089354
 
-# Ссылка скопирована точно с твоего скриншота Яндекс Диска
-YANDEX_DISK_URL = "https://yandex.kz"
+# Твоя ссылка .kz со скриншота
+YANDEX_DISK_URL = "https://disk.yandex.kz/d/pchRD7P7IxItMg"
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -20,10 +20,14 @@ FFMPEG_OPTIONS = {
 }
 
 def get_yandex_direct_url(public_url):
-    api_url = f"https://yandex.net{public_url}"
+    # Жестко прописываем правильный базовый URL API, чтобы домен .kz ничего не ломал
+    api_url = "https://yandex.net"
     try:
-        response = requests.get(api_url).json()
-        return response.get('href')
+        response = requests.get(api_url, params={'public_key': public_url})
+        if response.status_code == 200:
+            return response.json().get('href')
+        print(f"API вернул статус {response.status_code}: {response.text}", flush=True)
+        return None
     except Exception as e:
         print(f"Ошибка API Яндекса: {e}", flush=True)
         return None
@@ -54,7 +58,7 @@ async def play_playlist(vc):
             await asyncio.sleep(5)
             continue
 
-        # Бесшовный перезапуск каждые 10 минут (600 сек), чтобы ссылка не протухала
+        # Бесшовный перезапуск каждые 10 минут (600 сек)
         play_timer = 0
         while vc.is_connected() and vc.is_playing() and play_timer < 600:
             await asyncio.sleep(2)
