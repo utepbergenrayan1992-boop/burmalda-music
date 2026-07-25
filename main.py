@@ -5,8 +5,8 @@ except ModuleNotFoundError:
     import audioop_lts
     sys.modules['audioop'] = audioop_lts
 
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
 import asyncio
 import os
 import yt_dlp
@@ -22,8 +22,7 @@ if COOKIES_TEXT:
     with open(COOKIE_FILE_PATH, "w", encoding="utf-8") as f:
         f.write(COOKIES_TEXT)
 
-
-intents = discord.Intents.default()
+intents = disnake.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
@@ -49,26 +48,25 @@ async def keep_playing(vc):
                     info = ydl.extract_info(BURMALDA_URL, download=False)
                     direct_audio_url = info['url']
 
-                source = discord.FFmpegPCMAudio(
+                source = disnake.FFmpegPCMAudio(
                     direct_audio_url, 
                     before_options=FFMPEG_OPTIONS['before_options'], 
                     options=FFMPEG_OPTIONS['options']
                 )
                 vc.play(source)
-                print("Успешно запустили поток Бурмалды с куками!")
+                print("Успешно запустили поток Бурмалды!")
             except Exception as e:
                 print(f"Ошибка воспроизведения: {e}")
         await asyncio.sleep(5)
 
 @bot.event
 async def on_ready():
-    print(f"Бот {bot.user} запущен 24/7 с поддержкой YouTube!")
+    print(f"Бот {bot.user} запущен 24/7 на стабильном движке!")
     await asyncio.sleep(5)
     channel = bot.get_channel(VOICE_CHANNEL_ID)
     if channel:
         try:
-            # Силовой фикс: заставляем дискорд заново пробить сетевой сокет через альтернативный протокол
-            vc = await channel.connect(timeout=30.0, reconnect=True, self_deaf=True)
+            vc = await channel.connect(timeout=30.0, reconnect=True)
             bot.loop.create_task(keep_playing(vc))
         except Exception as e:
             print(f"Не удалось подключиться: {e}")
@@ -76,11 +74,11 @@ async def on_ready():
 @bot.event
 async def on_voice_state_update(member, before, after):
     if member.id == bot.user.id and after.channel is None:
-        await asyncio.sleep(10)
+        await asyncio.sleep(15)
         channel = bot.get_channel(VOICE_CHANNEL_ID)
         if channel:
             try:
-                vc = await channel.connect(timeout=30.0, reconnect=True, self_deaf=True)
+                vc = await channel.connect(timeout=30.0, reconnect=True)
                 bot.loop.create_task(keep_playing(vc))
             except Exception:
                 pass
