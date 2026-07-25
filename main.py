@@ -1,85 +1,80 @@
 import sys
+import os
+import asyncio
+
+# Костыль-заплатка для Python 3.13 на хостингах
 try:
     import audioop
 except ModuleNotFoundError:
     import audioop_lts
     sys.modules['audioop'] = audioop_lts
 
-import disnake
-from disnake.ext import commands
-import asyncio
-import os
-import yt_dlp
+import discord
+from discord.ext import commands
 
 TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1041431136687112196
-BURMALDA_URL = "https://www.youtube.com/watch?v=5h84DVeMom4"
+MUSIC_FOLDER = "playlist"  # Название папки с твоими треками .mp3
 
-COOKIES_TEXT = os.getenv("YT_COOKIES")
-COOKIE_FILE_PATH = os.path.join(os.getcwd(), "runtime_cookies.txt")
-
-if COOKIES_TEXT:
-    with open(COOKIE_FILE_PATH, "w", encoding="utf-8") as f:
-        f.write(COOKIES_TEXT)
-
-intents = disnake.Intents.default()
+intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-FFMPEG_OPTIONS = {
-    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-    'options': '-vn'
-}
+# Настройки плеера для локальных файлов (без таймаутов интернета)
+FFMPEG_OPTIONS = {'options': '-vn'}
 
-YDL_OPTIONS = {
-    'format': 'bestaudio/best',
-    'noplaylist': True,
-    'quiet': False,       # Снимаем режим тишины, чтобы видеть логи ютуба
-    'verbose': True       # Включаем полный отчет об ошибках плеера
-}
-
-if os.path.exists(COOKIE_FILE_PATH):
-    YDL_OPTIONS['cookiefile'] = COOKIE_FILE_PATH
-
-async def keep_playing(vc):
+async def play_playlist(vc):
     while vc.is_connected():
-        if not vc.is_playing():
-            try:
-                with yt_dlp.YoutubeDL(YDL_OPTIONS) as ydl:
-                    info = ydl.extract_info(BURMALDA_URL, download=False)
-                    direct_audio_url = info['url']
+        # Проверяем, есть ли вообще файлы mp3 в нашей папке
+        if not os.path.exists(MUSIC_FOLDER):
+            print(f"Ошибка: Создай папку {MUSIC_FOLDER} на GitHub и закинь треки!")
+            await asyncio.sleep(10)
+            continue
+            
+        tracks = [os.path.join(MUSIC_FOLDER, f) for f in os.listdir(MUSIC_FOLDER) if f.endswith('.mp3')]
+        
+        if not tracks:
+            print("В папке playlist нет ни одного .mp3 файла!")
+            await asyncio.sleep(10)
+            continue
 
-                source = disnake.FFmpegPCMAudio(
-                    direct_audio_url, 
-                    before_options=FFMPEG_OPTIONS['before_options'], 
-                    options=FFMPEG_OPTIONS['options']
-                )
-                vc.play(source)
-                print("Успешно запустили поток Бурмалды!", flush=True)
-            except Exception as e:
-                print(f"Ошибка воспроизведения: {e}", flush=True)
-        await asyncio.sleep(5)
+        # Бежим по очереди по каждому треку в нашей папке
+        for track_path in tracks:
+            if not vc.is_connected():
+                break
+                
+            print(f"Сейчас играет трек: {track_path}", flush=True)
+            
+            # Запускаем локальный файл
+            source = discord.FFmpegPCMAudio(track_path, options=FFMPEG_OPTIONS['options'])
+            vc.play(source)
+            
+            # Ждем, пока трек доиграет до самого конца
+            while vc.is_playing():
+                await asyncio.sleep(2)
+                
+        await asyncio.sleep(1)
 
 @bot.event
 async def on_ready():
-    print(f"Бот {bot.user} запущен 24/7 на стабильном движке!")
+    print(f"Бот {bot.user} запущен 24/7 в режиме локального плейлиста!")
     channel = bot.get_channel(VOICE_CHANNEL_ID)
     if channel:
         try:
-            vc = await channel.connect(timeout=30.0, reconnect=True)
-            bot.loop.create_task(keep_playing(vc))
+            vc = await channel.connect(timeout=60.0, reconnect=True, self_deaf=True)
+            bot.loop.create_task(play_playlist(vc))
         except Exception as e:
             print(f"Не удалось подключиться: {e}")
 
 @bot.event
 async def on_voice_state_update(member, before, after):
     if member.id == bot.user.id and after.channel is None:
-        await asyncio.sleep(15)
+        await asyncio.sleep(10)
         channel = bot.get_channel(VOICE_CHANNEL_ID)
         if channel:
             try:
-                vc = await channel.connect(timeout=30.0, reconnect=True)
-                bot.loop.create_task(keep_playing(vc))
+                vc = await channel.connect(timeout=60.0, reconnect=True, self_deaf=True)
+                bot.loop.create_task(play_playlist(vc))
             except Exception:
                 pass
 
