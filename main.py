@@ -18,7 +18,7 @@ async def on_ready():
     # Запускаем фоновую задачу
     random_ping.start()
 
-@tasks.loop(seconds 10) # По умолчанию проверяет каждый час. Можно изменить на minutes=30 или seconds=10 для теста
+@tasks.loop(seconds=10) # По умолчанию проверяет каждый час. Можно изменить на minutes=30 или seconds=10 для теста
 async def random_ping():
     # Шанс срабатывания (например, 30% при каждой проверке, чтобы момент был реально рандомным)
     if random.random() < 0.5: 
