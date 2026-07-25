@@ -1,14 +1,15 @@
-import sys
 import os
 import asyncio
-import re
 import discord
 from discord.ext import commands
-import aiohttp
 
 TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1530510035321356338
-FILE_ID = "1jIigUWHVnz0bubHF0Bg5MiO7h7l22I_A"
+
+# Рабочая прямая ссылка на твой трек из Dropbox
+TRACKS_URLS = [
+    "https://dropbox.com"
+]
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -19,61 +20,47 @@ FFMPEG_OPTIONS = {
     'options': '-vn'
 }
 
-async def get_google_drive_stream_url(file_id):
-    base_url = "https://google.com"
-    async with aiohttp.ClientSession() as session:
-        async with session.get(f"{base_url}&id={file_id}") as response:
-            html = await response.text()
-            match = re.search(r'confirm=([0-9a-zA-Z_]+)', html)
-            if match:
-                confirm_token = match.group(1)
-                return f"{base_url}&confirm={confirm_token}&id={file_id}"
-            return f"{base_url}&id={file_id}"
-
 async def play_playlist(vc):
     while vc.is_connected():
-        if not vc.is_connected():
-            break
-
-        print("Получаем рабочий поток с Google Диска...", flush=True)
-        try:
-            track_url = await get_google_drive_stream_url(FILE_ID)
-        except Exception as e:
-            print(f"Не удалось обойти защиту Google: {e}", flush=True)
+        if not TRACKS_URLS:
             await asyncio.sleep(10)
             continue
 
-        print("Запуск бесконечного стриминга трека BURMALDA FM...", flush=True)
-        source = None
-        try:
-            source = discord.FFmpegPCMAudio(
-                track_url, 
-                before_options=FFMPEG_OPTIONS['before_options'], 
-                options=FFMPEG_OPTIONS['options']
-            )
-            vc.play(source)
-        except Exception as e:
-            print(f"Ошибка при запуске FFmpeg: {e}", flush=True)
-            if source:
-                source.cleanup()
-            await asyncio.sleep(5)
-            continue
+        for track_url in TRACKS_URLS:
+            if not vc.is_connected():
+                break
 
-        while vc.is_connected() and vc.is_playing():
-            await asyncio.sleep(2)
-        
-        if source:
+            print("Запуск бесконечного стриминга трека BURMALDA FM из Dropbox...", flush=True)
+            source = None
             try:
-                source.cleanup()
-            except Exception:
-                pass
-                
-        print("Поток завершен. Перезапуск цикла...", flush=True)
-        await asyncio.sleep(1)
+                source = discord.FFmpegPCMAudio(
+                    track_url, 
+                    before_options=FFMPEG_OPTIONS['before_options'], 
+                    options=FFMPEG_OPTIONS['options']
+                )
+                vc.play(source)
+            except Exception as e:
+                print(f"Ошибка при запуске FFmpeg: {e}", flush=True)
+                if source:
+                    source.cleanup()
+                await asyncio.sleep(5)
+                continue
+
+            while vc.is_connected() and vc.is_playing():
+                await asyncio.sleep(2)
+            
+            if source:
+                try:
+                    source.cleanup()
+                except Exception:
+                    pass
+                    
+            print("Поток завершен. Перезапуск цикла...", flush=True)
+            await asyncio.sleep(1)
 
 @bot.event
 async def on_ready():
-    print(f"Бот {bot.user} успешно запущен через Google Drive Bypass!", flush=True)
+    print(f"Бот {bot.user} успешно запущен через Dropbox Stream!", flush=True)
     channel = bot.get_channel(VOICE_CHANNEL_ID)
     if channel:
         try:
