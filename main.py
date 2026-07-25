@@ -1,38 +1,50 @@
 import discord
-from discord.ext import tasks
+from discord.ext import commands, tasks
 import random
 import os
 
-# Считываем переменную, которую ты указал в Values
+# Считываем токен из переменной TOKEN на Railway
 TOKEN = os.getenv('TOKEN')
 
-# ID текстового канала, куда бот будет писать (замени на свой)
-CHANNEL_ID = 1405955231828676755
+# ID текстового канала, куда бот будет сам писать по таймеру (вставь свой ID)
+CHANNEL_ID = 1405955231828676755  
 
 intents = discord.Intents.default()
-intents.members = True 
+intents.members = True          # Чтобы видеть список людей
+intents.message_content = True  # Чтобы читать команду !кто баба
 
-bot = discord.Client(intents=intents)
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+async def send_babina(channel):
+    """Единая функция: ищет случайного чела и пишет строго одну фразу"""
+    human_members = []
+    async for member in channel.guild.fetch_members(limit=None):
+        if not member.bot:
+            human_members.append(member)
+            
+    if human_members:
+        victim = random.choice(human_members)
+        # В чате будет ТУПО это сообщение и больше ничего
+        await channel.send(f'{victim.mention} ты баба')
 
 @bot.event
 async def on_ready():
-    print(f'Бот {bot.user} успешно запущен на Railway 24/7!')
-    random_ping.start()
+    print(f'Бот {bot.user} запущен! Работает таймер и команда.')
+    if not random_ping.is_running():
+        random_ping.start()
 
-# Проверка каждый час. Для теста можно изменить на minutes=1
-@tasks.loop(hours=2) 
+# 1. РАБОТА ПО КОМАНДЕ: пишем в чат «!кто баба»
+@bot.command(name="кто")
+async def manual_babina(ctx, *, arg=None):
+    if arg and arg.lower().strip() == "баба":
+        await send_babina(ctx.channel)
+
+# 2. РАБОТА ПО ТАЙМЕРУ: проверка каждый час с шансом 30%
+@tasks.loop(hours=1)
 async def random_ping():
-    # 30% шанс срабатывания каждый час для эффекта неожиданности
-    if random.random() < 0.5: 
+    if random.random() < 0.3:
         channel = bot.get_channel(CHANNEL_ID)
         if channel:
-            # Собираем всех людей на сервере, кроме других ботов
-            members = [m for m in channel.guild.members if not m.bot]
-            
-            if members:
-                victim = random.choice(members)
-                # Пингуем случайного чела и пишем фразу
-                await channel.send(f'{victim.mention} ты бабина')
+            await send_babina(channel)
 
-# Запуск бота через скрытую переменную
 bot.run(TOKEN)
