@@ -62,7 +62,6 @@ async def keep_playing(vc):
 @bot.event
 async def on_ready():
     print(f"Бот {bot.user} запущен 24/7 на стабильном движке!")
-    await asyncio.sleep(5)
     channel = bot.get_channel(VOICE_CHANNEL_ID)
     if channel:
         try:
