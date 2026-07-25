@@ -6,7 +6,7 @@ import yt_dlp
 
 TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1041431136687112196  # ID твоего голосового канала
-BURMALDA_URL = "https://youtube.com"  # Ссылка на Бурмалда фм
+BURMALDA_URL = "https://www.youtube.com/watch?v=5h84DVeMom4"  # Ссылка на Бурмалда фм
 
 intents = discord.Intents.default()
 intents.message_content = True
