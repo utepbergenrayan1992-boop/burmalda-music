@@ -7,7 +7,7 @@ TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1530548841324089354
 
 # Твоя точная ссылка со скриншота Яндекс Диска
-YANDEX_DISK_URL = "https://yandex.kz"
+YANDEX_DISK_URL = "https://disk.yandex.kz/d/pchRD7P7IxItMg"
 
 intents = discord.Intents.default()
 intents.message_content = True
