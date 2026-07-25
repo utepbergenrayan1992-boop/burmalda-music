@@ -2,12 +2,14 @@ import sys
 import os
 import asyncio
 
-# Костыль-заплатка для Python 3.13 на хостингах
 try:
     import audioop
 except ModuleNotFoundError:
-    import audioop_lts
-    sys.modules['audioop'] = audioop_lts
+    try:
+        import audioop_lts
+        sys.modules['audioop'] = audioop_lts
+    except ModuleNotFoundError:
+        pass
 
 import discord
 from discord.ext import commands
@@ -15,16 +17,15 @@ from discord.ext import commands
 TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1530510035321356338
 
-# Стриминг напрямую с твоего Google Диска
+# Переделанная ссылка с обходом страницы проверки на вирусы для больших файлов
 TRACKS_URLS = [
-    "https://google.com"
+    "https://usercontent.com"
 ]
 
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Настройки FFmpeg для стабильного интернет-потока
 FFMPEG_OPTIONS = {
     'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
     'options': '-vn'
@@ -33,7 +34,6 @@ FFMPEG_OPTIONS = {
 async def play_playlist(vc):
     while vc.is_connected():
         if not TRACKS_URLS:
-            print("Ошибка: Список TRACKS_URLS пуст!")
             await asyncio.sleep(10)
             continue
 
@@ -41,8 +41,6 @@ async def play_playlist(vc):
             if not vc.is_connected():
                 break
 
-            print(f"Запуск стриминга трека BURMALDA FM (по кругу)...", flush=True)
-            
             source = None
             try:
                 source = discord.FFmpegPCMAudio(
@@ -51,14 +49,12 @@ async def play_playlist(vc):
                     options=FFMPEG_OPTIONS['options']
                 )
                 vc.play(source)
-            except Exception as e:
-                print(f"Ошибка при запуске потока: {e}")
+            except Exception:
                 if source:
                     source.cleanup()
                 await asyncio.sleep(5)
                 continue
 
-            # Ждем завершения трека, но СТРОГО проверяем, что бот всё еще в войсе
             while vc.is_connected() and vc.is_playing():
                 await asyncio.sleep(2)
             
@@ -68,32 +64,28 @@ async def play_playlist(vc):
                 except Exception:
                     pass
                     
-            print("Круг завершен или соединение разорвано. Перезапуск...", flush=True)
             await asyncio.sleep(1)
 
 @bot.event
 async def on_ready():
-    print(f"Бот {bot.user} успешно запущен!")
     channel = bot.get_channel(VOICE_CHANNEL_ID)
     if channel:
         try:
             vc = await channel.connect(timeout=60.0, reconnect=True, self_deaf=True)
             bot.loop.create_task(play_playlist(vc))
-        except Exception as e:
-            print(f"Не удалось подключиться: {e}")
+        except Exception:
+            pass
 
 @bot.event
 async def on_voice_state_update(member, before, after):
-    # Если бот вылетел из-за ошибки 4017, этот кусок переподключит его обратно
     if member.id == bot.user.id and after.channel is None:
-        print("Бота выкинуло из канала. Попытка переподключения через 5 секунд...")
         await asyncio.sleep(5)
         channel = bot.get_channel(VOICE_CHANNEL_ID)
         if channel:
             try:
                 vc = await channel.connect(timeout=60.0, reconnect=True, self_deaf=True)
                 bot.loop.create_task(play_playlist(vc))
-            except Exception as e:
-                print(f"Ошибка авто-переподключения: {e}")
+            except Exception:
+                pass
 
 bot.run(TOKEN)
