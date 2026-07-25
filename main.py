@@ -12,22 +12,23 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Настройки FFmpeg для стабильного онлайн-стриминга
+# Надежные настройки FFmpeg для стабильного онлайн-стриминга аудио
 FFMPEG_OPTIONS = {
     'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
     'options': '-vn'
 }
 
 def get_direct_stream_url():
-    """Получает рабочую прямую ссылку через API Яндекс Диска"""
+    """Получает рабочую прямую ссылку через официальное API Яндекс Диска"""
     base_url = "https://yandex.net"
     try:
-        response = requests.get(f"{base_url}?public_key={YANDEX_DISK_URL}", timeout=10)
+        # Передаем публичную ссылку правильно через params, чтобы избежать ошибок кодирования URL
+        response = requests.get(base_url, params={'public_key': YANDEX_DISK_URL}, timeout=10)
         if response.status_code == 200:
             return response.json().get('href')
-        print(f"Яндекс API вернул ошибку {response.status_code}", flush=True)
+        print(f"Яндекс API вернул ошибку {response.status_code}: {response.text}", flush=True)
     except Exception as e:
-        print(f"Ошибка сети при запросе к Яндексу: {e}", flush=True)
+        print(f"Ошибка при запросе к API Яндекса: {e}", flush=True)
     return None
 
 async def play_playlist(vc):
@@ -41,7 +42,7 @@ async def play_playlist(vc):
             await asyncio.sleep(10)
             continue
 
-        print("Запуск трансляции трека...", flush=True)
+        print("Запуск трансляции трека в голосовой канал...", flush=True)
         source = None
         try:
             source = discord.FFmpegPCMAudio(stream_url, **FFMPEG_OPTIONS)
@@ -51,7 +52,7 @@ async def play_playlist(vc):
             await asyncio.sleep(5)
             continue
 
-        # Проверяем статус каждые 2 секунды
+        # Проверяем статус воспроизведения каждые 2 секунды
         while vc.is_connected() and vc.is_playing():
             await asyncio.sleep(2)
 
@@ -61,7 +62,7 @@ async def play_playlist(vc):
             except Exception:
                 pass
         
-        print("Поток завершился. Запуск по новой...", flush=True)
+        print("Поток завершился или прервался. Запуск по новой...", flush=True)
         await asyncio.sleep(1)
 
 @bot.event
@@ -70,6 +71,7 @@ async def on_ready():
     channel = bot.get_channel(VOICE_CHANNEL_ID)
     if channel:
         try:
+            # reconnect=True автоматически держит соединение с серверами Discord при сбоях сети
             vc = await channel.connect(timeout=60.0, reconnect=True, self_deaf=True)
             bot.loop.create_task(play_playlist(vc))
         except Exception as e:
