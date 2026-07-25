@@ -64,6 +64,7 @@ async def keep_playing(vc):
 
 @bot.event
 async def on_ready():
+    await asyncio.sleep(5)
     print(f"Бот {bot.user} запущен 24/7 с поддержкой YouTube!")
     channel = bot.get_channel(VOICE_CHANNEL_ID)
     if channel:
