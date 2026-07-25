@@ -14,50 +14,56 @@ from discord.ext import commands
 
 TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1530510035321356338
-MUSIC_FOLDER = "playlist"  # Название папки с твоими треками .mp3
+
+# Стриминг напрямую с твоего Google Диска
+TRACKS_URLS = [
+    "https://google.com"
+]
 
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Настройки плеера для локальных файлов (без таймаутов интернета)
-FFMPEG_OPTIONS = {'options': '-vn'}
+# Настройки FFmpeg для стабильного интернет-потока без заиканий
+FFMPEG_OPTIONS = {
+    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+    'options': '-vn'
+}
 
 async def play_playlist(vc):
     while vc.is_connected():
-        # Проверяем, есть ли вообще файлы mp3 в нашей папке
-        if not os.path.exists(MUSIC_FOLDER):
-            print(f"Ошибка: Создай папку {MUSIC_FOLDER} на GitHub и закинь треки!")
-            await asyncio.sleep(10)
-            continue
-            
-        tracks = [os.path.join(MUSIC_FOLDER, f) for f in os.listdir(MUSIC_FOLDER) if f.endswith('.mp3')]
-        
-        if not tracks:
-            print("В папке playlist нет ни одного .mp3 файла!")
+        if not TRACKS_URLS:
+            print("Ошибка: Список TRACKS_URLS пуст!")
             await asyncio.sleep(10)
             continue
 
-        # Бежим по очереди по каждому треку в нашей папке
-        for track_path in tracks:
+        for track_url in TRACKS_URLS:
             if not vc.is_connected():
                 break
-                
-            print(f"Сейчас играет трек: {track_path}", flush=True)
+
+            print(f"Запуск стриминга трека BURMALDA FM...", flush=True)
             
-            # Запускаем локальный файл
-            source = discord.FFmpegPCMAudio(track_path, options=FFMPEG_OPTIONS['options'])
-            vc.play(source)
-            
-            # Ждем, пока трек доиграет до самого конца
+            try:
+                source = discord.FFmpegPCMAudio(
+                    track_url, 
+                    before_options=FFMPEG_OPTIONS['before_options'], 
+                    options=FFMPEG_OPTIONS['options']
+                )
+                vc.play(source)
+            except Exception as e:
+                print(f"Ошибка при запуске потока: {e}")
+                await asyncio.sleep(5)
+                continue
+
+            # Ждем завершения трека
             while vc.is_playing():
                 await asyncio.sleep(2)
-                
-        await asyncio.sleep(1)
+            
+            await asyncio.sleep(1)
 
 @bot.event
 async def on_ready():
-    print(f"Бот {bot.user} запущен 24/7 в режиме локального плейлиста!")
+    print(f"Бот {bot.user} успешно запущен в режиме стриминга с Google Drive!")
     channel = bot.get_channel(VOICE_CHANNEL_ID)
     if channel:
         try:
@@ -68,6 +74,7 @@ async def on_ready():
 
 @bot.event
 async def on_voice_state_update(member, before, after):
+    # Если бота выкинули из канала, он ждет 10 секунд и заходит обратно
     if member.id == bot.user.id and after.channel is None:
         await asyncio.sleep(10)
         channel = bot.get_channel(VOICE_CHANNEL_ID)
