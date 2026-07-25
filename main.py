@@ -20,7 +20,7 @@ async def on_ready():
     random_ping.start()
 
 # Проверка каждый час. Для теста можно изменить на minutes=1
-@tasks.loop(hours=1) 
+@tasks.loop(hours=2) 
 async def random_ping():
     # 30% шанс срабатывания каждый час для эффекта неожиданности
     if random.random() < 0.5: 
