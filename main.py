@@ -6,20 +6,20 @@ import requests
 
 TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1530548841324089354
-YANDEX_DISK_URL = "https://yandex.kz"
+YANDEX_DISK_URL = "https://disk.yandex.kz/d/pchRD7P7IxItMg"
 
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Оптимальные настройки FFmpeg для непрерывного онлайн-стриминга
+# Настройки FFmpeg для стабильного онлайн-стриминга
 FFMPEG_OPTIONS = {
     'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
     'options': '-vn'
 }
 
 def get_direct_stream_url():
-    """Получает рабочую прямую ссылку через официальное API Яндекс Диска"""
+    """Получает рабочую прямую ссылку через API Яндекс Диска"""
     base_url = "https://yandex.net"
     try:
         response = requests.get(f"{base_url}?public_key={YANDEX_DISK_URL}", timeout=10)
@@ -51,7 +51,7 @@ async def play_playlist(vc):
             await asyncio.sleep(5)
             continue
 
-        # Спокойно ждем окончания трека, проверяя статус каждые 2 секунды
+        # Проверяем статус каждые 2 секунды
         while vc.is_connected() and vc.is_playing():
             await asyncio.sleep(2)
 
@@ -70,7 +70,6 @@ async def on_ready():
     channel = bot.get_channel(VOICE_CHANNEL_ID)
     if channel:
         try:
-            # Параметр reconnect=True заставляет discord.py удерживать соединение самостоятельно
             vc = await channel.connect(timeout=60.0, reconnect=True, self_deaf=True)
             bot.loop.create_task(play_playlist(vc))
         except Exception as e:
