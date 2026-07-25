@@ -1,2 +1,2 @@
-disnake[voice]==2.7.0
-yt-dlp==2025.1.26
+discord.py[voice]==2.4.0
+audioop-lts
