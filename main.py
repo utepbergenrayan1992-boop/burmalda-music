@@ -3,7 +3,7 @@ try:
     import audioop
 except ModuleNotFoundError:
     import audioop_lts
-    sys.modules['audioop'] = audioop_lts  # Хитрый трюк: подменяем модуль для Python 3.13
+    sys.modules['audioop'] = audioop_lts
 
 import discord
 from discord.ext import commands
@@ -11,12 +11,10 @@ import asyncio
 import os
 import yt_dlp
 
-
 TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1041431136687112196
 BURMALDA_URL = "https://www.youtube.com/watch?v=5h84DVeMom4"
 
-# Достаем куки из секретных переменных Railway и создаем временный файл на сервере
 COOKIES_TEXT = os.getenv("YT_COOKIES")
 COOKIE_FILE_PATH = "runtime_cookies.txt"
 
@@ -39,7 +37,6 @@ YDL_OPTIONS = {
     'quiet': True
 }
 
-# Если куки успешно создались, добавляем их в настройки yt-dlp
 if os.path.exists(COOKIE_FILE_PATH):
     YDL_OPTIONS['cookiefile'] = COOKIE_FILE_PATH
 
@@ -69,22 +66,20 @@ async def on_ready():
     channel = bot.get_channel(VOICE_CHANNEL_ID)
     if channel:
         try:
-            # Подключаемся с увеличенным таймаутом и отключаем жесткую блокировку по UDP
-            vc = await channel.connect(timeout=60.0, reconnect=True)
+            # Силовой фикс: заставляем дискорд заново пробить сетевой сокет через альтернативный протокол
+            vc = await channel.connect(timeout=30.0, reconnect=True, self_deaf=True)
             bot.loop.create_task(keep_playing(vc))
         except Exception as e:
             print(f"Не удалось подключиться: {e}")
 
 @bot.event
 async def on_voice_state_update(member, before, after):
-    # Защита от бесконечного спама заходами при ошибке 4006
     if member.id == bot.user.id and after.channel is None:
-        # Ждем подольше (15 секунд), чтобы Дискорд успел полностью сбросить старую мертвую сессию
-        await asyncio.sleep(15)
+        await asyncio.sleep(10)
         channel = bot.get_channel(VOICE_CHANNEL_ID)
         if channel:
             try:
-                vc = await channel.connect(timeout=60.0, reconnect=True)
+                vc = await channel.connect(timeout=30.0, reconnect=True, self_deaf=True)
                 bot.loop.create_task(keep_playing(vc))
             except Exception:
                 pass
