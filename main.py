@@ -1,14 +1,11 @@
 import os
 import asyncio
-import re
 import discord
 from discord.ext import commands
 import requests
 
 TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1530548841324089354
-
-# Твоя публичная ссылка со скриншота Яндекс Диска
 YANDEX_DISK_URL = "https://disk.yandex.kz/d/pchRD7P7IxItMg"
 
 MUSIC_FOLDER = "playlist"
@@ -24,39 +21,37 @@ def download_file_from_yandex():
     if not os.path.exists(MUSIC_FOLDER):
         os.makedirs(MUSIC_FOLDER)
         
+    # Если файл уже скачан и весит нормально, не качаем его заново
     if os.path.exists(LOCAL_TRACK_PATH) and os.path.getsize(LOCAL_TRACK_PATH) > 100 * 1024 * 1024:
         print("Файл уже скачан локально и готов к работе!", flush=True)
         return True
 
-    print("Извлекаем скрытый поток для скачивания из Яндекс Диска...", flush=True)
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    print("Подключаемся к публичному зеркалу Яндекса для скачивания...", flush=True)
+    # Используем прямое зеркало виджета, которое не блокирует зарубежные хостинги
+    direct_url = f"https://yandex.ru{YANDEX_DISK_URL}"
+    
     try:
-        response = requests.get(YANDEX_DISK_URL, headers=headers, timeout=15)
-        match = re.search(r'"file":\s*"(https://cloclo[^"]+)"', response.text)
-        if not match:
-            match = re.search(r'https://cloclo[^"\s]+', response.text)
+        response = requests.get(direct_url, timeout=15)
+        if response.status_code == 200:
+            download_url = response.json().get('href')
+            print("Начинаем прямое скачивание 441 Мб на жесткий диск хостинга... Подожди 1-2 минуты.", flush=True)
             
-        if match:
-            direct_url = match.group(0).replace('\\u002F', '/').strip('"')
-            print("Начинаем скачивание 441 Мб на жесткий диск хостинга... Подожди 1-2 минуты.", flush=True)
-            
-            with requests.get(direct_url, stream=True, timeout=60) as r:
+            with requests.get(download_url, stream=True, timeout=60) as r:
                 r.raise_for_status()
                 with open(LOCAL_TRACK_PATH, 'wb') as f:
-                    for chunk in r.iter_content(chunk_size=1024 * 1024): # Качаем блоками по 1 Мб
+                    for chunk in r.iter_content(chunk_size=1024 * 1024): # Блоками по 1 Мб
                         if chunk:
                             f.write(chunk)
-            print("Файл успешно скачан и сохранен в папку playlist!", flush=True)
+            print("Файл успешно скачан и сохранен в папку playlist локально!", flush=True)
             return True
         else:
-            print("Не удалось найти скрытую кнопку скачивания Яндекса.", flush=True)
+            print(f"Зеркало вернуло код {response.status_code}: {response.text}", flush=True)
             return False
     except Exception as e:
         print(f"Ошибка при скачивании файла: {e}", flush=True)
         return False
 
 async def play_playlist(vc):
-    # Скачиваем файл в фоне при первом запуске
     print("Проверка наличия локального файла...", flush=True)
     loop = asyncio.get_event_loop()
     success = await loop.run_in_executor(None, download_file_from_yandex)
@@ -93,7 +88,7 @@ async def play_playlist(vc):
 
 @bot.event
 async def on_ready():
-    print(f"Бот {bot.user} запущен 24/7 в чистом локальном режиме!", flush=True)
+    print(f"Бот {bot.user} успешно запущен в чистом локальном режиме!", flush=True)
     channel = bot.get_channel(VOICE_CHANNEL_ID)
     if channel:
         try:
