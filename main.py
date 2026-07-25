@@ -1,8 +1,16 @@
+import sys
+try:
+    import audioop
+except ModuleNotFoundError:
+    import audioop_lts
+    sys.modules['audioop'] = audioop_lts  # Хитрый трюк: подменяем модуль для Python 3.13
+
 import discord
 from discord.ext import commands
 import asyncio
 import os
 import yt_dlp
+
 
 TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1041431136687112196
