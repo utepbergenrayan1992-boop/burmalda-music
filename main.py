@@ -6,7 +6,7 @@ import requests
 
 TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1530548841324089354
-YANDEX_DISK_URL = "disk.yandex.kz/d/pchRD7P7IxItMg"
+YANDEX_DISK_URL = "/d/pchRD7P7IxItMg"
 
 MUSIC_FOLDER = "playlist"
 LOCAL_TRACK_PATH = os.path.join(MUSIC_FOLDER, "music.mp3")
