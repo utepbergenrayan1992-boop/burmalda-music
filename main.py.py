@@ -7,7 +7,7 @@ import os
 TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1041431136687112196 
 # Ссылка на поток радио Бурмалда FM
-BURMALDA_URL = "https://zeno.fm"
+BURMALDA_URL = "https://www.youtube.com/watch?v=5h84DVeMom4"
 
 intents = discord.Intents.default()
 intents.message_content = True
