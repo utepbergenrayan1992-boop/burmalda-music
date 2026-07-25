@@ -5,8 +5,16 @@ import os
 import yt_dlp
 
 TOKEN = os.getenv("BOT_TOKEN")
-VOICE_CHANNEL_ID = 1041431136687112196  # ID твоего голосового канала
-BURMALDA_URL = "https://www.youtube.com/watch?v=5h84DVeMom4"  # Ссылка на Бурмалда фм
+VOICE_CHANNEL_ID = 1041431136687112196
+BURMALDA_URL = "https://www.youtube.com/watch?v=5h84DVeMom4"
+
+# Достаем куки из секретных переменных Railway и создаем временный файл на сервере
+COOKIES_TEXT = os.getenv("YT_COOKIES")
+COOKIE_FILE_PATH = "runtime_cookies.txt"
+
+if COOKIES_TEXT:
+    with open(COOKIE_FILE_PATH, "w", encoding="utf-8") as f:
+        f.write(COOKIES_TEXT)
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -23,24 +31,25 @@ YDL_OPTIONS = {
     'quiet': True
 }
 
+# Если куки успешно создались, добавляем их в настройки yt-dlp
+if os.path.exists(COOKIE_FILE_PATH):
+    YDL_OPTIONS['cookiefile'] = COOKIE_FILE_PATH
+
 async def keep_playing(vc):
-    """Бесконечно удерживает поток активным из YouTube"""
     while vc.is_connected():
         if not vc.is_playing():
             try:
-                # Достаем прямую аудиоссылку из YouTube-видео прямо перед включением
                 with yt_dlp.YoutubeDL(YDL_OPTIONS) as ydl:
                     info = ydl.extract_info(BURMALDA_URL, download=False)
                     direct_audio_url = info['url']
 
-                # Включаем музыку (без указания executable, Linux найдет его в системе сам)
                 source = discord.FFmpegPCMAudio(
                     direct_audio_url, 
                     before_options=FFMPEG_OPTIONS['before_options'], 
                     options=FFMPEG_OPTIONS['options']
                 )
                 vc.play(source)
-                print("Успешно запустили поток Бурмалды!")
+                print("Успешно запустили поток Бурмалды с куками!")
             except Exception as e:
                 print(f"Ошибка воспроизведения: {e}")
         await asyncio.sleep(5)
@@ -58,7 +67,6 @@ async def on_ready():
 
 @bot.event
 async def on_voice_state_update(member, before, after):
-    # Если бота кикнули из канала, он зайдет обратно через 5 секунд
     if member.id == bot.user.id and after.channel is None:
         await asyncio.sleep(5)
         channel = bot.get_channel(VOICE_CHANNEL_ID)
