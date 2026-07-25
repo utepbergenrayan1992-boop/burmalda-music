@@ -1,5 +1,6 @@
 import os
 import asyncio
+import re
 import discord
 from discord.ext import commands
 import requests
@@ -7,86 +8,99 @@ import requests
 TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1530548841324089354
 
-# Твоя точная публичная ссылка на файл
+# Твоя публичная ссылка со скриншота Яндекс Диска
 YANDEX_DISK_URL = "https://disk.yandex.kz/d/pchRD7P7IxItMg"
+
+MUSIC_FOLDER = "playlist"
+LOCAL_TRACK_PATH = os.path.join(MUSIC_FOLDER, "music.mp3")
 
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-FFMPEG_OPTIONS = {
-    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-    'options': '-vn'
-}
+FFMPEG_OPTIONS = {'options': '-vn'}
 
-def get_yandex_direct_url(public_url):
-    # Используем строго официальное API без ручных склеек доменов
-    api_url = "https://yandex.net"
+def download_file_from_yandex():
+    if not os.path.exists(MUSIC_FOLDER):
+        os.makedirs(MUSIC_FOLDER)
+        
+    if os.path.exists(LOCAL_TRACK_PATH) and os.path.getsize(LOCAL_TRACK_PATH) > 100 * 1024 * 1024:
+        print("Файл уже скачан локально и готов к работе!", flush=True)
+        return True
+
+    print("Извлекаем скрытый поток для скачивания из Яндекс Диска...", flush=True)
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     try:
-        response = requests.get(api_url, params={'public_key': public_url}, timeout=10)
-        if response.status_code == 200:
-            return response.json().get('href')
-        print(f"API Яндекса вернул ошибку {response.status_code}: {response.text}", flush=True)
-        return None
+        response = requests.get(YANDEX_DISK_URL, headers=headers, timeout=15)
+        match = re.search(r'"file":\s*"(https://cloclo[^"]+)"', response.text)
+        if not match:
+            match = re.search(r'https://cloclo[^"\s]+', response.text)
+            
+        if match:
+            direct_url = match.group(0).replace('\\u002F', '/').strip('"')
+            print("Начинаем скачивание 441 Мб на жесткий диск хостинга... Подожди 1-2 минуты.", flush=True)
+            
+            with requests.get(direct_url, stream=True, timeout=60) as r:
+                r.raise_for_status()
+                with open(LOCAL_TRACK_PATH, 'wb') as f:
+                    for chunk in r.iter_content(chunk_size=1024 * 1024): # Качаем блоками по 1 Мб
+                        if chunk:
+                            f.write(chunk)
+            print("Файл успешно скачан и сохранен в папку playlist!", flush=True)
+            return True
+        else:
+            print("Не удалось найти скрытую кнопку скачивания Яндекса.", flush=True)
+            return False
     except Exception as e:
-        print(f"Ошибка запроса к API Яндекса: {e}", flush=True)
-        return None
+        print(f"Ошибка при скачивании файла: {e}", flush=True)
+        return False
 
 async def play_playlist(vc):
-    while vc.is_connected():
-        print("Запрашиваем прямую ссылку у API Яндекса...", flush=True)
-        stream_url = get_yandex_direct_url(YANDEX_DISK_URL)
-        
-        if not stream_url:
-            print("Ошибка получения ссылки. Ждем 10 сек...", flush=True)
-            await asyncio.sleep(10)
-            continue
+    # Скачиваем файл в фоне при первом запуске
+    print("Проверка наличия локального файла...", flush=True)
+    loop = asyncio.get_event_loop()
+    success = await loop.run_in_executor(None, download_file_from_yandex)
+    
+    if not success or not os.path.exists(LOCAL_TRACK_PATH):
+        print("Не удалось подготовить локальный файл. Повтор через 10 секунд...", flush=True)
+        await asyncio.sleep(10)
+        bot.loop.create_task(play_playlist(vc))
+        return
 
-        print("Запуск бесконечного стриминга трека BURMALDA FM...", flush=True)
+    while vc.is_connected():
+        print(f"Запуск локального трека из папки: {LOCAL_TRACK_PATH}", flush=True)
         source = None
         try:
-            source = discord.FFmpegPCMAudio(
-                stream_url, 
-                before_options=FFMPEG_OPTIONS['before_options'], 
-                options=FFMPEG_OPTIONS['options']
-            )
+            source = discord.FFmpegPCMAudio(LOCAL_TRACK_PATH, options=FFMPEG_OPTIONS['options'])
             vc.play(source)
         except Exception as e:
-            print(f"Ошибка при запуске FFmpeg: {e}", flush=True)
-            if source:
-                source.cleanup()
+            print(f"Ошибка воспроизведения: {e}", flush=True)
             await asyncio.sleep(5)
             continue
 
-        # Бесшовный перезапуск каждые 10 минут, чтобы поток не засыпал
-        play_timer = 0
-        while vc.is_connected() and vc.is_playing() and play_timer < 600:
+        # Спокойно ждем окончания, так как файл играет прямо с диска сервера Render
+        while vc.is_connected() and vc.is_playing():
             await asyncio.sleep(2)
-            play_timer += 2
-        
-        if vc.is_playing():
-            print("Время сессии истекло. Обновление аудиопотока...", flush=True)
-            vc.stop()
-            
+
         if source:
             try:
                 source.cleanup()
             except Exception:
                 pass
-                
-        print("Перезапуск цикла воспроизведения...", flush=True)
+            
+        print("Локальный трек завершился. Запуск по новой...", flush=True)
         await asyncio.sleep(1)
 
 @bot.event
 async def on_ready():
-    print(f"Бот {bot.user} успешно запущен и готов к стримингу!", flush=True)
+    print(f"Бот {bot.user} запущен 24/7 в чистом локальном режиме!", flush=True)
     channel = bot.get_channel(VOICE_CHANNEL_ID)
     if channel:
         try:
             vc = await channel.connect(timeout=60.0, reconnect=True, self_deaf=True)
             bot.loop.create_task(play_playlist(vc))
         except Exception as e:
-            print(f"Ошибка входа в голосовой канал: {e}", flush=True)
+            print(f"Не удалось подключиться: {e}", flush=True)
 
 @bot.event
 async def on_voice_state_update(member, before, after):
