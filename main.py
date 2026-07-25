@@ -54,9 +54,9 @@ async def keep_playing(vc):
                     options=FFMPEG_OPTIONS['options']
                 )
                 vc.play(source)
-                print("Успешно запустили поток Бурмалды!")
+                print("Успешно запустили поток Бурмалды!", flush=True)
             except Exception as e:
-                print(f"Ошибка воспроизведения: {e}")
+                print(f"Ошибка воспроизведения: {e}", flush=True)
         await asyncio.sleep(5)
 
 @bot.event
