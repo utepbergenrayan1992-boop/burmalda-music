@@ -10,7 +10,7 @@ TOKEN = os.getenv('TOKEN')
 CHANNEL_ID = 1405955231828676755  
 
 # Имя файла твоей картинки, который лежит в папке с ботом
-IMAGE_FILE_NAME = "buster.jpg" 
+IMAGE_FILE_NAME = "buster.png" 
 
 intents = discord.Intents.default()
 intents.members = True          # Чтобы видеть список людей
