@@ -6,9 +6,9 @@ from discord.ext import commands
 TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1530510035321356338
 
-# Рабочая прямая ссылка на твой трек из Dropbox
+# Ссылка переделана под специальный домен прямой отдачи файлов Dropbox
 TRACKS_URLS = [
-    "https://dropbox.com"
+    "https://dropboxusercontent.com"
 ]
 
 intents = discord.Intents.default()
