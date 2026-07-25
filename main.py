@@ -2,24 +2,13 @@ import sys
 import os
 import asyncio
 import re
-
-# Фикс для работы со старыми и новыми версиями Python
-try:
-    import audioop
-except ModuleNotFoundError:
-    try:
-        import audioop_lts
-        sys.modules['audioop'] = audioop_lts
-    except ModuleNotFoundError:
-        pass
-
 import discord
 from discord.ext import commands
-import aiohttp  # Библиотека для незаметного получения токена у Google
+import aiohttp
 
 TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1530510035321356338
-FILE_ID = "1jIigUWHVnz0bubHF0Bg5MiO7h7l22I_A"  # ID твоего файла
+FILE_ID = "1jIigUWHVnz0bubHF0Bg5MiO7h7l22I_A"
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -30,22 +19,15 @@ FFMPEG_OPTIONS = {
     'options': '-vn'
 }
 
-# Функция, которая обходит защиту Google Диска для больших файлов
 async def get_google_drive_stream_url(file_id):
-    base_url = "https://docs.google.com/uc?export=download"
+    base_url = "https://google.com"
     async with aiohttp.ClientSession() as session:
-        # 1. Делаем первый проверочный запрос к Google
         async with session.get(f"{base_url}&id={file_id}") as response:
             html = await response.text()
-            
-            # 2. Ищем скрытый проверочный токен на странице предупреждения
             match = re.search(r'confirm=([0-9a-zA-Z_]+)', html)
             if match:
                 confirm_token = match.group(1)
-                # Возвращаем ссылку со встроенным токеном обхода вирусов
                 return f"{base_url}&confirm={confirm_token}&id={file_id}"
-            
-            # Если токен не нужен (файл стал доступен напрямую)
             return f"{base_url}&id={file_id}"
 
 async def play_playlist(vc):
@@ -55,7 +37,6 @@ async def play_playlist(vc):
 
         print("Получаем рабочий поток с Google Диска...", flush=True)
         try:
-            # Динамически генерируем обходную ссылку перед каждым стартом
             track_url = await get_google_drive_stream_url(FILE_ID)
         except Exception as e:
             print(f"Не удалось обойти защиту Google: {e}", flush=True)
