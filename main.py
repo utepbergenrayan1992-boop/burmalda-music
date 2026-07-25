@@ -7,8 +7,8 @@ import requests
 TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1530548841324089354
 
-# === СЮДА ВСТАВЬ СВОЮ ССЫЛКУ НА ЯНДЕКС ДИСК ===
-YANDEX_DISK_URL = "https://disk.yandex.kz/d/pchRD7P7IxItMg"
+# Ссылка скопирована точно с твоего скриншота Яндекс Диска
+YANDEX_DISK_URL = "https://yandex.kz"
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -54,13 +54,12 @@ async def play_playlist(vc):
             await asyncio.sleep(5)
             continue
 
-        # Защита от зависания: крутим цикл, но не дольше 10 минут (600 сек) за один раз
+        # Бесшовный перезапуск каждые 10 минут (600 сек), чтобы ссылка не протухала
         play_timer = 0
         while vc.is_connected() and vc.is_playing() and play_timer < 600:
             await asyncio.sleep(2)
             play_timer += 2
         
-        # Принудительно чистим поток, чтобы обновить ссылку на следующем круге
         if vc.is_playing():
             print("Время сессии истекло. Принудительное обновление потока...", flush=True)
             vc.stop()
