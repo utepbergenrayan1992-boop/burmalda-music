@@ -34,7 +34,8 @@ FFMPEG_OPTIONS = {
 YDL_OPTIONS = {
     'format': 'bestaudio/best',
     'noplaylist': True,
-    'quiet': True
+    'quiet': False,       # Снимаем режим тишины, чтобы видеть логи ютуба
+    'verbose': True       # Включаем полный отчет об ошибках плеера
 }
 
 if os.path.exists(COOKIE_FILE_PATH):
