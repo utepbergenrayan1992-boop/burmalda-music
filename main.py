@@ -16,11 +16,12 @@ VOICE_CHANNEL_ID = 1041431136687112196
 BURMALDA_URL = "https://www.youtube.com/watch?v=5h84DVeMom4"
 
 COOKIES_TEXT = os.getenv("YT_COOKIES")
-COOKIE_FILE_PATH = "runtime_cookies.txt"
+COOKIE_FILE_PATH = os.path.join(os.getcwd(), "runtime_cookies.txt")
 
 if COOKIES_TEXT:
     with open(COOKIE_FILE_PATH, "w", encoding="utf-8") as f:
         f.write(COOKIES_TEXT)
+
 
 intents = discord.Intents.default()
 intents.message_content = True
