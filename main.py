@@ -7,7 +7,7 @@ TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1530510035321356338
 
 # Сюда вставь ссылку на YouTube видео со своим треком (можно доступ по ссылке)
-YOUTUBE_URL = "https://youtube.com"
+YOUTUBE_URL = "https://www.youtube.com/watch?v=5h84DVeMom4"
 
 intents = discord.Intents.default()
 intents.message_content = True
