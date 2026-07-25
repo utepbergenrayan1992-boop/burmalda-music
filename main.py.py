@@ -4,7 +4,7 @@ import asyncio
 import os
 
 # === НАСТРОЙКИ БОТА ===
-TOKEN = 'MTUzMDQ1MjU0NTMwOTM4MDY2OQ.GPtBCs.Klh_FCvcR-1rpIuWvzowlk3GyPcM3031APyfRo'
+TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1041431136687112196 
 # Ссылка на поток радио Бурмалда FM
 BURMALDA_URL = "https://zeno.fm"
