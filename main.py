@@ -28,7 +28,7 @@ def download_file_from_yandex():
 
     print("Подключаемся к публичному зеркалу Яндекса для скачивания...", flush=True)
     # Используем прямое зеркало виджета, которое не блокирует зарубежные хостинги
-    direct_url = f"https://yandex.kz{YANDEX_DISK_URL}"
+    direct_url = f"https://yandex.ru{YANDEX_DISK_URL}"
     
     try:
         response = requests.get(direct_url, timeout=15)
