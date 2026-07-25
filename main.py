@@ -13,7 +13,7 @@ import discord
 from discord.ext import commands
 
 TOKEN = os.getenv("BOT_TOKEN")
-VOICE_CHANNEL_ID = 1041431136687112196
+VOICE_CHANNEL_ID = 1530510035321356338
 MUSIC_FOLDER = "playlist"  # Название папки с твоими треками .mp3
 
 intents = discord.Intents.default()
