@@ -17,9 +17,9 @@ from discord.ext import commands
 TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1530510035321356338
 
-# Переделанная ссылка с обходом страницы проверки на вирусы для больших файлов
+# Исправленная прямая ссылка на поток аудиофайла из Google API
 TRACKS_URLS = [
-    "https://usercontent.com"
+    "https://googleapis.com"
 ]
 
 intents = discord.Intents.default()
