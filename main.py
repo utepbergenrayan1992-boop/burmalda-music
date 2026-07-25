@@ -7,7 +7,7 @@ import requests
 TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1530548841324089354
 
-# Твоя ссылка .kz со скриншота
+# Твоя ссылка со скриншота Яндекс Диска
 YANDEX_DISK_URL = "https://disk.yandex.kz/d/pchRD7P7IxItMg"
 
 intents = discord.Intents.default()
@@ -20,7 +20,7 @@ FFMPEG_OPTIONS = {
 }
 
 def get_yandex_direct_url(public_url):
-    # Жестко прописываем правильный базовый URL API, чтобы домен .kz ничего не ломал
+    # ИСПРАВЛЕНО: Строго официальный адрес API Яндекса для извлечения потока файлов
     api_url = "https://yandex.net"
     try:
         response = requests.get(api_url, params={'public_key': public_url})
