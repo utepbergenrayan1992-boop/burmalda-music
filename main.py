@@ -5,7 +5,7 @@ from discord.ext import commands
 import requests
 
 TOKEN = os.getenv("BOT_TOKEN")
-VOICE_CHANNEL_ID = 1530510035321356338
+VOICE_CHANNEL_ID = 1530548841324089354
 
 # === СЮДА ВСТАВЬ СВОЮ ПУБЛИЧНУЮ ССЫЛКУ НА ЯНДЕКС ДИСК ===
 YANDEX_DISK_URL = "https://disk.yandex.kz/d/pchRD7P7IxItMg"
