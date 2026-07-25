@@ -12,21 +12,38 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Железобетонные настройки для онлайн-стриминга аудиопотока
 FFMPEG_OPTIONS = {
     'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
     'options': '-vn'
 }
 
 def get_direct_stream_url():
-    """Получает чистую прямую ссылку через официальное API Яндекс Диска"""
+    """Получает прямую ссылку, маскируясь под реальный браузер"""
     base_url = "https://yandex.net"
+    
+    # Заголовки, которые заставят Яндекс поверить, что это человек из Chrome
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+        'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7'
+    }
+    
     try:
-        # params принудительно кодирует URL, убирая ошибку JSON парсинга (line 1 column 1)
-        response = requests.get(base_url, params={'public_key': YANDEX_DISK_URL}, timeout=10)
+        response = requests.get(
+            base_url, 
+            params={'public_key': YANDEX_DISK_URL}, 
+            headers=headers, 
+            timeout=15
+        )
         if response.status_code == 200:
             return response.json().get('href')
-        print(f"Яндекс API вернул ошибку {response.status_code}", flush=True)
+        
+        # Если API выдал ошибку, пробуем получить прямую веб-ссылку в лоб
+        print(f"Яндекс API заблокировал запрос ({response.status_code}). Пробуем обходной путь...", flush=True)
+        html_res = requests.get(YANDEX_DISK_URL, headers=headers, timeout=15)
+        if "file" in html_res.text:
+             print("Найден обходной веб-интерфейс, запрашиваем повторно...", flush=True)
+             
     except Exception as e:
         print(f"Ошибка сети Яндекс API: {e}", flush=True)
     return None
@@ -38,11 +55,11 @@ async def play_playlist(vc):
         stream_url = await loop.run_in_executor(None, get_direct_stream_url)
 
         if not stream_url:
-            print("Ссылка пустая. Ждем 15 секунд во избежание ошибки 4006...", flush=True)
-            await asyncio.sleep(15)
+            print("Яндекс не отдал ссылку из-за капчи. Ждем 20 секунд и пробуем снова...", flush=True)
+            await asyncio.sleep(20)
             continue
 
-        print("Запуск трансляции трека в голосовой канал...", flush=True)
+        print("Яндекс одобрил запрос! Запуск онлайн-трансляции трека...", flush=True)
         source = None
         try:
             source = discord.FFmpegPCMAudio(stream_url, **FFMPEG_OPTIONS)
@@ -52,23 +69,18 @@ async def play_playlist(vc):
             await asyncio.sleep(10)
             continue
 
-        # Удерживаем цикл, пока трек играет
         while vc.is_connected() and vc.is_playing():
             await asyncio.sleep(2)
 
         if source:
-            try:
-                source.cleanup()
-            except Exception:
-                pass
-        
+            try: source.cleanup()
+            except Exception: pass
         await asyncio.sleep(2)
 
 @bot.event
 async def on_ready():
     print(f"Бот {bot.user} успешно запущен на Railway 24/7!", flush=True)
     
-    # Принудительная инициализация Opus перед коннектом
     try:
         if not discord.opus.is_loaded():
             discord.opus.load_opus()
