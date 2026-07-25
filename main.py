@@ -7,7 +7,7 @@ import os
 TOKEN = os.getenv('TOKEN')
 
 # ID текстового канала, куда бот будет писать (замени на свой)
-CHANNEL_ID = 1041431136687112193
+CHANNEL_ID = 1405955231828676755
 
 intents = discord.Intents.default()
 intents.members = True 
@@ -20,7 +20,7 @@ async def on_ready():
     random_ping.start()
 
 # Проверка каждый час. Для теста можно изменить на minutes=1
-@tasks.loop(seconds=10) 
+@tasks.loop(hours=1) 
 async def random_ping():
     # 30% шанс срабатывания каждый час для эффекта неожиданности
     if random.random() < 0.5: 
