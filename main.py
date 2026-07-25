@@ -2,11 +2,12 @@ import os
 import asyncio
 import discord
 from discord.ext import commands
+import requests
 
 TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1530548841324089354
 
-# Твоя точная ссылка со скриншота Яндекс Диска
+# Твоя точная публичная ссылка на файл
 YANDEX_DISK_URL = "https://disk.yandex.kz/d/pchRD7P7IxItMg"
 
 intents = discord.Intents.default()
@@ -19,21 +20,25 @@ FFMPEG_OPTIONS = {
 }
 
 def get_yandex_direct_url(public_url):
-    # Прямой обход API: конструируем чистую ссылку для скачивания вручную
-    # Это полностью убирает ошибку "Expecting value: line 1 column 1"
+    # Используем строго официальное API без ручных склеек доменов
+    api_url = "https://yandex.net"
     try:
-        clean_url = public_url.replace("https://yandex.kz", "").replace("https://yandex.ru", "")
-        return f"https://disk.yandex.ru/public/resources/download?public_key=https://yandex.ru{clean_url}"
-    except Exception:
+        response = requests.get(api_url, params={'public_key': public_url}, timeout=10)
+        if response.status_code == 200:
+            return response.json().get('href')
+        print(f"API Яндекса вернул ошибку {response.status_code}: {response.text}", flush=True)
+        return None
+    except Exception as e:
+        print(f"Ошибка запроса к API Яндекса: {e}", flush=True)
         return None
 
 async def play_playlist(vc):
     while vc.is_connected():
-        print("Формируем прямую ссылку для стриминга...", flush=True)
+        print("Запрашиваем прямую ссылку у API Яндекса...", flush=True)
         stream_url = get_yandex_direct_url(YANDEX_DISK_URL)
         
         if not stream_url:
-            print("Ошибка генерации ссылки. Ждем 10 сек...", flush=True)
+            print("Ошибка получения ссылки. Ждем 10 сек...", flush=True)
             await asyncio.sleep(10)
             continue
 
@@ -53,7 +58,7 @@ async def play_playlist(vc):
             await asyncio.sleep(5)
             continue
 
-        # Бесшовное обновление каждые 10 минут, чтобы поток не засыпал тихо
+        # Бесшовный перезапуск каждые 10 минут, чтобы поток не засыпал
         play_timer = 0
         while vc.is_connected() and vc.is_playing() and play_timer < 600:
             await asyncio.sleep(2)
@@ -74,7 +79,7 @@ async def play_playlist(vc):
 
 @bot.event
 async def on_ready():
-    print(f"Бот {bot.user} запущен 24/7 в обход API Яндекс Диска!", flush=True)
+    print(f"Бот {bot.user} успешно запущен и готов к стримингу!", flush=True)
     channel = bot.get_channel(VOICE_CHANNEL_ID)
     if channel:
         try:
