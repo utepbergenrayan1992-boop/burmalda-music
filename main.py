@@ -5,7 +5,7 @@ from discord.ext import commands
 
 TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1530510035321356338
-YOUTUBE_URL = "https://www.youtube.com/watch?v=9PJ3LZLcR20&pp=ygUV0LHRg9GA0LzQsNC70LTQsCDRhNC8"
+YOUTUBE_URL = "https://www.youtube.com/watch?v=s33REwDxvqc&list=RDs33REwDxvqc&start_radio=1&pp=ygUV0LHRg9GA0LzQsNC70LTQsCDRhNC8oAcB"
 
 intents = discord.Intents.default()
 intents.message_content = True
