@@ -2,13 +2,12 @@ import os
 import asyncio
 import discord
 from discord.ext import commands
-import requests
 
 TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1530548841324089354
 
-# Твоя ссылка со скриншота Яндекс Диска
-YANDEX_DISK_URL = "https://disk.yandex.kz/d/pchRD7P7IxItMg"
+# Твоя точная ссылка со скриншота Яндекс Диска
+YANDEX_DISK_URL = "https://yandex.kz"
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -20,29 +19,25 @@ FFMPEG_OPTIONS = {
 }
 
 def get_yandex_direct_url(public_url):
-    # ИСПРАВЛЕНО: Строго официальный адрес API Яндекса для извлечения потока файлов
-    api_url = "https://yandex.net"
+    # Прямой обход API: конструируем чистую ссылку для скачивания вручную
+    # Это полностью убирает ошибку "Expecting value: line 1 column 1"
     try:
-        response = requests.get(api_url, params={'public_key': public_url})
-        if response.status_code == 200:
-            return response.json().get('href')
-        print(f"API вернул статус {response.status_code}: {response.text}", flush=True)
-        return None
-    except Exception as e:
-        print(f"Ошибка API Яндекса: {e}", flush=True)
+        clean_url = public_url.replace("https://yandex.kz", "").replace("https://yandex.ru", "")
+        return f"https://disk.yandex.ru/public/resources/download?public_key=https://yandex.ru{clean_url}"
+    except Exception:
         return None
 
 async def play_playlist(vc):
     while vc.is_connected():
-        print("Обновляем прямую ссылку из Яндекс Диска...", flush=True)
+        print("Формируем прямую ссылку для стриминга...", flush=True)
         stream_url = get_yandex_direct_url(YANDEX_DISK_URL)
         
         if not stream_url:
-            print("Ошибка: Не удалось получить ссылку. Ждем 10 сек...", flush=True)
+            print("Ошибка генерации ссылки. Ждем 10 сек...", flush=True)
             await asyncio.sleep(10)
             continue
 
-        print("Запуск стриминга трека BURMALDA FM...", flush=True)
+        print("Запуск бесконечного стриминга трека BURMALDA FM...", flush=True)
         source = None
         try:
             source = discord.FFmpegPCMAudio(
@@ -58,14 +53,14 @@ async def play_playlist(vc):
             await asyncio.sleep(5)
             continue
 
-        # Бесшовный перезапуск каждые 10 минут (600 сек)
+        # Бесшовное обновление каждые 10 минут, чтобы поток не засыпал тихо
         play_timer = 0
         while vc.is_connected() and vc.is_playing() and play_timer < 600:
             await asyncio.sleep(2)
             play_timer += 2
         
         if vc.is_playing():
-            print("Время сессии истекло. Принудительное обновление потока...", flush=True)
+            print("Время сессии истекло. Обновление аудиопотока...", flush=True)
             vc.stop()
             
         if source:
@@ -79,7 +74,7 @@ async def play_playlist(vc):
 
 @bot.event
 async def on_ready():
-    print(f"Бот {bot.user} запущен 24/7 с авто-обновлением потока Яндекс Диска!", flush=True)
+    print(f"Бот {bot.user} запущен 24/7 в обход API Яндекс Диска!", flush=True)
     channel = bot.get_channel(VOICE_CHANNEL_ID)
     if channel:
         try:
