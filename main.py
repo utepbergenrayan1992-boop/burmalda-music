@@ -1,12 +1,11 @@
 import os
 import asyncio
-import base64
 import discord
 from discord.ext import commands
 
 TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1530510035321356338
-YOUTUBE_URL = "https://www.youtube.com/watch?v=5h84DVeMom4"
+YOUTUBE_URL = "https://youtube.com"
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -17,26 +16,21 @@ FFMPEG_OPTIONS = {
     'options': '-vn'
 }
 
-# Безопасное создание временного файла с куками из переменной окружения
 def setup_cookies():
-    cookie_base64 = os.getenv("YT_COOKIES_BASE64")
-    if cookie_base64:
+    cookie_raw_text = os.getenv("YT_COOKIES_BASE64")
+    if cookie_raw_text:
         try:
-            cookie_data = base64.b64decode(cookie_base64)
-            with open("temp_cookies.txt", "wb") as f:
-                f.write(cookie_data)
+            with open("temp_cookies.txt", "w", encoding="utf-8") as f:
+                f.write(cookie_raw_text)
             return "temp_cookies.txt"
         except Exception as e:
-            print(f"Ошибка декодирования куков: {e}", flush=True)
+            print(f"Ошибка сохранения куков: {e}", flush=True)
     return None
 
 async def play_playlist(vc):
     while vc.is_connected():
         print("Запуск безопасного стриминга YouTube с куками...", flush=True)
-        
-        # Создаем временный файл перед запуском трека
         cookie_file = setup_cookies()
-        
         source = None
         try:
             import yt_dlp
@@ -67,7 +61,6 @@ async def play_playlist(vc):
             await asyncio.sleep(5)
             continue
         finally:
-            # Сразу удаляем файл куков с диска для полной безопасности
             if cookie_file and os.path.exists(cookie_file):
                 try:
                     os.remove(cookie_file)
