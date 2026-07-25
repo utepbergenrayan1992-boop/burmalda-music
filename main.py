@@ -8,7 +8,7 @@ TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1530510035321356338
 
 # === СЮДА ВСТАВЬ СВОЮ ПУБЛИЧНУЮ ССЫЛКУ НА ЯНДЕКС ДИСК ===
-YANDEX_DISK_URL = "https://yandex.ru"
+YANDEX_DISK_URL = "https://disk.yandex.kz/d/pchRD7P7IxItMg"
 
 intents = discord.Intents.default()
 intents.message_content = True
