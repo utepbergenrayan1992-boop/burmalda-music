@@ -6,15 +6,14 @@ from discord.ext import commands
 TOKEN = os.getenv("BOT_TOKEN")
 VOICE_CHANNEL_ID = 1530510035321356338
 
-# Ссылка переделана под специальный домен прямой отдачи файлов Dropbox
-TRACKS_URLS = [
-    "https://dropboxusercontent.com"
-]
+# Сюда вставь ссылку на YouTube видео со своим треком (можно доступ по ссылке)
+YOUTUBE_URL = "https://youtube.com"
 
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# Настройки для прямого стриминга звука с серверов YouTube
 FFMPEG_OPTIONS = {
     'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
     'options': '-vn'
@@ -22,45 +21,44 @@ FFMPEG_OPTIONS = {
 
 async def play_playlist(vc):
     while vc.is_connected():
-        if not TRACKS_URLS:
-            await asyncio.sleep(10)
+        print("Запуск бесконечного стриминга трека из YouTube...", flush=True)
+        source = None
+        try:
+            # Используем yt-dlp, который автоматически вытягивает чистый аудиопоток
+            import yt_dlp
+            ydl_opts = {'format': 'bestaudio/best', 'noplaylist': True}
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(YOUTUBE_URL, download=False)
+                stream_url = info['url']
+                
+            source = discord.FFmpegPCMAudio(
+                stream_url, 
+                before_options=FFMPEG_OPTIONS['before_options'], 
+                options=FFMPEG_OPTIONS['options']
+            )
+            vc.play(source)
+        except Exception as e:
+            print(f"Ошибка стриминга: {e}", flush=True)
+            if source:
+                source.cleanup()
+            await asyncio.sleep(5)
             continue
 
-        for track_url in TRACKS_URLS:
-            if not vc.is_connected():
-                break
-
-            print("Запуск бесконечного стриминга трека BURMALDA FM из Dropbox...", flush=True)
-            source = None
+        while vc.is_connected() and vc.is_playing():
+            await asyncio.sleep(2)
+        
+        if source:
             try:
-                source = discord.FFmpegPCMAudio(
-                    track_url, 
-                    before_options=FFMPEG_OPTIONS['before_options'], 
-                    options=FFMPEG_OPTIONS['options']
-                )
-                vc.play(source)
-            except Exception as e:
-                print(f"Ошибка при запуске FFmpeg: {e}", flush=True)
-                if source:
-                    source.cleanup()
-                await asyncio.sleep(5)
-                continue
-
-            while vc.is_connected() and vc.is_playing():
-                await asyncio.sleep(2)
-            
-            if source:
-                try:
-                    source.cleanup()
-                except Exception:
-                    pass
-                    
-            print("Поток завершен. Перезапуск цикла...", flush=True)
-            await asyncio.sleep(1)
+                source.cleanup()
+            except Exception:
+                pass
+                
+        print("Поток завершен. Перезапуск цикла...", flush=True)
+        await asyncio.sleep(1)
 
 @bot.event
 async def on_ready():
-    print(f"Бот {bot.user} успешно запущен через Dropbox Stream!", flush=True)
+    print(f"Бот {bot.user} успешно запущен через YouTube Stream!", flush=True)
     channel = bot.get_channel(VOICE_CHANNEL_ID)
     if channel:
         try:
