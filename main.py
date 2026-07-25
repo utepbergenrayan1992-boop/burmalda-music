@@ -64,24 +64,27 @@ async def keep_playing(vc):
 
 @bot.event
 async def on_ready():
-    await asyncio.sleep(5)
     print(f"Бот {bot.user} запущен 24/7 с поддержкой YouTube!")
+    await asyncio.sleep(5)
     channel = bot.get_channel(VOICE_CHANNEL_ID)
     if channel:
         try:
-            vc = await channel.connect()
+            # Подключаемся с увеличенным таймаутом и отключаем жесткую блокировку по UDP
+            vc = await channel.connect(timeout=60.0, reconnect=True)
             bot.loop.create_task(keep_playing(vc))
         except Exception as e:
             print(f"Не удалось подключиться: {e}")
 
 @bot.event
 async def on_voice_state_update(member, before, after):
+    # Защита от бесконечного спама заходами при ошибке 4006
     if member.id == bot.user.id and after.channel is None:
-        await asyncio.sleep(5)
+        # Ждем подольше (15 секунд), чтобы Дискорд успел полностью сбросить старую мертвую сессию
+        await asyncio.sleep(15)
         channel = bot.get_channel(VOICE_CHANNEL_ID)
         if channel:
             try:
-                vc = await channel.connect()
+                vc = await channel.connect(timeout=60.0, reconnect=True)
                 bot.loop.create_task(keep_playing(vc))
             except Exception:
                 pass
