@@ -1,36 +1,38 @@
 import discord
 from discord.ext import tasks
 import random
-import asyncio
+import os
 
-#
-# Вставьте сюда ID текстового канала, где бот должен спамить (включите режим разработчика в ДС -> ПКМ по каналу -> Копировать ID)
-CHANNEL_ID = 1041431136687112193  
+# Считываем переменную, которую ты указал в Values
+TOKEN = os.getenv('TOKEN')
+
+# ID текстового канала, куда бот будет писать (замени на свой)
+CHANNEL_ID = 1041431136687112193
 
 intents = discord.Intents.default()
-intents.members = True # Разрешаем доступ к списку пользователей
+intents.members = True 
 
 bot = discord.Client(intents=intents)
 
 @bot.event
 async def on_ready():
-    print(f'Бот {bot.user} запущен и готов обзываться!')
-    # Запускаем фоновую задачу
+    print(f'Бот {bot.user} успешно запущен на Railway 24/7!')
     random_ping.start()
 
-@tasks.loop(seconds=10) # По умолчанию проверяет каждый час. Можно изменить на minutes=30 или seconds=10 для теста
+# Проверка каждый час. Для теста можно изменить на minutes=1
+@tasks.loop(seconds=10) 
 async def random_ping():
-    # Шанс срабатывания (например, 30% при каждой проверке, чтобы момент был реально рандомным)
+    # 30% шанс срабатывания каждый час для эффекта неожиданности
     if random.random() < 0.5: 
         channel = bot.get_channel(CHANNEL_ID)
         if channel:
-            # Получаем список всех людей на сервере, исключая ботов
+            # Собираем всех людей на сервере, кроме других ботов
             members = [m for m in channel.guild.members if not m.bot]
             
             if members:
                 victim = random.choice(members)
-                # Отправляем сообщение с упоминанием
-                await channel.send(f'{victim.mention} БАБЬЕ БЛЯТЬ')
+                # Пингуем случайного чела и пишем фразу
+                await channel.send(f'{victim.mention} ты бабина')
 
-# Запуск бота
+# Запуск бота через скрытую переменную
 bot.run(TOKEN)
