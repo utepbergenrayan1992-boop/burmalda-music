@@ -1,67 +1,51 @@
+import os
 import discord
 from discord.ext import commands, tasks
-import random
-import os
 
-# Считываем токен из переменной TOKEN на Railway
+# Считываем токен из переменной окружения на Railway
 TOKEN = os.getenv('TOKEN')
 
-# ID текстового канала, куда бот будет сам писать по таймеру (вставь свой ID)
-CHANNEL_ID = 1405955231828676755  
+# ID текстового канала, куда бот будет писать каждый час (вставьте ваш ID)
+CHANNEL_ID = 1405955231828676755
 
-# Имя файла твоей картинки, который лежит в папке с ботом
-IMAGE_FILE_NAME = "buster.png" 
+# Никнейм цели (имя пользователя, а не отображаемое имя)
+TARGET_USERNAME = "bebra777_228_69610"
 
 intents = discord.Intents.default()
-intents.members = True          # Чтобы видеть список людей
-intents.message_content = True  # Чтобы читать команды
+intents.members = True  # Нужно для поиска пользователя по серверу
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-async def send_babina(channel):
-    """Функция ищет случайного чела и пишет строго фразу 'ты баба'"""
-    human_members = []
-    async for member in channel.guild.fetch_members(limit=None):
-        if not member.bot:
-            human_members.append(member)
-            
-    if human_members:
-        victim = random.choice(human_members)
-        await channel.send(f'{victim.mention} ты баба')
-
 @bot.event
 async def on_ready():
-    print(f'Бот {bot.user} запущен! Картинка загружается локально.')
-    if not random_ping.is_running():
-        random_ping.start()
+    print(f'Бот {bot.user} успешно запущен на Railway!')
+    # Запускаем таймер, если он еще не запущен
+    if not hourly_check.is_running():
+        hourly_check.start()
 
-# 1. КОМАНДА: пишем в чат «!кто баба»
-@bot.command(name="кто")
-async def manual_babina(ctx, *, arg=None):
-    if arg and arg.lower().strip() == "баба":
-        await send_babina(ctx.channel)
+# Задача выполняется ровно раз в час
+@tasks.loop(minutes=1)
+async def hourly_check():
+    channel = bot.get_channel(CHANNEL_ID)
+    if not channel:
+        print("Ошибка: Канал не найден. Проверьте CHANNEL_ID.")
+        return
 
-# 2. КОМАНДА: пишем в чат «!бустер»
-@bot.command(name="бустер")
-async def manual_buster(ctx):
-    # Проверяем, существует ли файл в папке
-    if os.path.exists(IMAGE_FILE_NAME):
-        # Отправляем картинку реальным файлом с хостинга
-        await ctx.channel.send(file=discord.File(IMAGE_FILE_NAME))
+    target_member = None
+    
+    # Ищем пользователя по его username среди участников сервера
+    async for member in channel.guild.fetch_members(limit=None):
+        if member.name == TARGET_USERNAME:
+            target_member = member
+            break
+
+    # Если нашли — пингуем, если нет — пишем обычным текстом
+    if target_member:
+        await channel.send(f'{target_member.mention} бабье')
     else:
-        await ctx.channel.send("Ошибка: файл картинки не найден в папке бота!")
+        await channel.send(f'@{TARGET_USERNAME} бабье')
+    print(f"Отправлено уведомление для {TARGET_USERNAME}")
 
-# 3. РАБОТА ПО ТАЙМЕРУ: проверка каждый час с шансом 30%
-@tasks.loop(hours=1)
-async def random_ping():
-    if random.random() < 0.3:
-        channel = bot.get_channel(CHANNEL_ID)
-        if channel:
-            # 50% шанс, что отправится пинг "ты баба", и 50% шанс, что отправится твоя картинка
-            if random.choice([True, False]):
-                await send_babina(channel)
-            else:
-                if os.path.exists(IMAGE_FILE_NAME):
-                    await channel.send(file=discord.File(IMAGE_FILE_NAME))
-
-bot.run(TOKEN)
+# Запуск бота через токен из панели Railway
+if __name__ == "__main__":
+    bot.run(TOKEN)
