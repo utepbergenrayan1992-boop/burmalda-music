@@ -45,7 +45,7 @@ async def on_message(message):
     msg_content = message.content.lower().strip()
 
     # Проверяем наличие триггер-фразы
-    if "мне нужны факты" in msg_content:
+    if "бебра лох" in msg_content:
         await message.channel.send("факты")
 
     # ОБЯЗАТЕЛЬНО: обрабатываем команды бота (!кто, !бустер)
