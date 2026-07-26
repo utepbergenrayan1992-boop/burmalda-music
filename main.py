@@ -6,15 +6,15 @@ import os
 # Считываем токен из переменной TOKEN на Railway
 TOKEN = os.getenv('TOKEN')
 
-# ID текстового канала, куда бот будет сам писать по таймеру (вставь свой ID)
-CHANNEL_ID = 1405955231828676755  
+# ID текстового канала, куда бот будет сам писать по таймеру
+CHANNEL_ID = 1405955231828676755
 
 # Имя файла твоей картинки, который лежит в папке с ботом
-IMAGE_FILE_NAME = "buster.png" 
+IMAGE_FILE_NAME = "buster.png"
 
 intents = discord.Intents.default()
-intents.members = True          # Чтобы видеть список людей
-intents.message_content = True  # Чтобы читать команды
+intents.members = True  # Чтобы видеть список людей
+intents.message_content = True  # Чтобы читать команды и текст сообщений
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
@@ -24,7 +24,6 @@ async def send_babina(channel):
     async for member in channel.guild.fetch_members(limit=None):
         if not member.bot:
             human_members.append(member)
-            
     if human_members:
         victim = random.choice(human_members)
         await channel.send(f'{victim.mention} ты баба')
@@ -34,6 +33,23 @@ async def on_ready():
     print(f'Бот {bot.user} запущен! Картинка загружается локально.')
     if not random_ping.is_running():
         random_ping.start()
+
+# ПРОВЕРКА ВХОДЯЩИХ СООБЩЕНИЙ
+@bot.event
+async def on_message(message):
+    # Игнорируем сообщения от самого бота, чтобы он не зациклился
+    if message.author == bot.user:
+        return
+
+    # Приводим текст к нижнему регистру для проверки
+    msg_content = message.content.lower().strip()
+
+    # Проверяем наличие триггер-фразы
+    if "бебра лох" in msg_content:
+        await message.channel.send("факты")
+
+    # ОБЯЗАТЕЛЬНО: обрабатываем команды бота (!кто, !бустер)
+    await bot.process_commands(message)
 
 # 1. КОМАНДА: пишем в чат «!кто баба»
 @bot.command(name="кто")
